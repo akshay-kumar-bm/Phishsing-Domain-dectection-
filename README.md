@@ -1,43 +1,46 @@
-# Phishing Website Detection
+# Phishing Domain Detection
 
-This project aims to detect phishing websites using machine learning techniques. The project is divided into several components, each responsible for a specific task in the pipeline.
+A machine-learning web app that takes a URL, extracts lexical features from it and predicts whether it is likely to be a phishing website.
 
-## Components
+## What it does
+The user enters a URL in a Flask page; `extract_features` (in `src/pipelines/prediction_pipeline.py`) derives URL-based features, the saved preprocessor and model score it, and the page shows either "may be a phishing website, be aware" or "safe".
 
-1. **Data Ingestion**: This component is responsible for reading the dataset and splitting it into training and testing sets.
+## Features
+- Modular ML pipeline: data ingestion, transformation (preprocessor object), model trainer, training pipeline and prediction pipeline.
+- Model trainer compares several classifiers (Random Forest, Gradient Boosting, XGBoost, SVC, AdaBoost, Decision Tree; KNN commented out) and keeps the best.
+- Custom logging and exception modules; `setup.py` for packaging.
+- Dataset: URL-feature dataset (`notebooks/data/dataset_full.csv`, split 70/30, `random_state=42`) - the notebook folder includes the figure from the public dataset paper.
+- AWS Elastic Beanstalk config (`.ebextensions/python.config`); the original README states it was deployed on Elastic Beanstalk with CodePipeline (ap-south-1), which may no longer be live.
+- Design docs (architecture, HLD, LLD, wireframe, report, demo video) in `Documentation/`.
 
-2. **Data Transformation**: This component preprocesses the data, handling tasks such as missing value imputation and feature scaling.
+## Flow
+```mermaid
+flowchart LR
+  CSV[dataset_full.csv] --> DI[data_ingestion] --> DT[data_transformation] --> MT[model_trainer] --> M[(model.pkl, preprocessor.pkl)]
+  U[URL form] --> F[extract_features] --> P[PredictPipeline] --> M
+```
 
-3. **Model Training**: This component trains various machine learning models on the preprocessed data and selects the best model based on performance.
+## Tech stack
+Python, pandas, NumPy, scikit-learn, XGBoost, Flask, AWS Elastic Beanstalk. (`requirements.txt` lists only pandas, numpy, scikit-learn, Flask - add `xgboost`.)
 
-4. **Prediction Pipeline**: This component uses the trained model to make predictions on new data.
+## Structure
+```
+application.py            # Flask app
+src/components/           # data_ingestion, data_transformation, model_trainer
+src/pipelines/            # training_pipeline, prediction_pipeline
+src/{logger,exception,utils}.py
+artifacts/                # model, preprocessor, train/test CSVs
+notebooks/                # EDA notebook + datasets
+templates/index.html
+Documentation/            # docs, pptx, demo video
+```
 
-5. **Logging**: This component logs important events and errors during the execution of the pipeline.
+## Run
+```bash
+pip install -r requirements.txt xgboost
+python src/pipelines/training_pipeline.py   # optional retrain
+python application.py                       # http://localhost:5000
+```
 
-6. **Exception Handling**: This component handles exceptions that may occur during the execution of the pipeline.
-
-7. **Application**: This component is a Flask application that uses the prediction pipeline to predict whether a given website is a phishing website.
-
-## Usage
-
-To use this project, follow these steps:
-
-1. Clone the repository.
-2. Install the required dependencies.
-3. Run the training pipeline to train the model.
-4. Start the Flask application.
-
-## Dependencies
-
-This project requires the following Python libraries:
-
-- pandas
-- numpy
-- scikit-learn
-- Flask
-- XGBoost
-- 
-**Deployment**
-model is deploted in AWS used Elastic Beanstalk &  CodePipeline<br>
-url: http://phishsingdomain-env.eba-bnpny4zw.ap-south-1.elasticbeanstalk.com
-
+## Limitations
+No reported evaluation metrics in the repo; features are purely URL-lexical; large binaries committed (see verdict); `debug=True` in the server.
